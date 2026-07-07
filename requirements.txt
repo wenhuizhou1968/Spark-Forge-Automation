@@ -3,13 +3,21 @@
 # Data processing
 pandas==2.1.0
 openpyxl==3.10.10
+numpy==1.24.3
 
-# API requests
+# API requests & HTTP
 requests==2.31.0
+urllib3==2.0.4
+
+# Configuration & Environment
 python-dotenv==1.0.0
 
-# Email
-python-dotenv==1.0.0
+# Email & SMTP
+secure-smtplib==0.1.1
 
 # Utilities
 pyyaml==6.0
+pytz==2023.3
+
+# Logging
+python-json-logger==2.0.7
