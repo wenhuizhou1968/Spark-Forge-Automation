@@ -1,0 +1,132 @@
+name: Spark & Forge Biweekly Automation
+
+on:
+  schedule:
+    # Every 2 weeks on Tuesday at 9:00 AM PT (17:00 UTC)
+    # Tuesday = day 2 in cron (0=Sunday)
+    - cron: '0 17 * * 2'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  spark-forge-cycle:
+    runs-on: ubuntu-latest
+    name: Run Spark & Forge Biweekly Cycle
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas openpyxl python-dotenv
+
+      - name: Phase 1 - Extract R&D Presentations
+        run: |
+          python scripts/phase1_extract_presentations.py
+        env:
+          R_AND_D_PATH: ${{ secrets.R_AND_D_PATH }}
+          SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
+
+      - name: Phase 2 - Scan External Intelligence
+        run: |
+          python scripts/phase2_external_intelligence.py
+        env:
+          PUBMED_API_KEY: ${{ secrets.PUBMED_API_KEY }}
+          GITHUB_PATENTS_TOKEN: ${{ secrets.GITHUB_PATENTS_TOKEN }}
+
+      - name: Phase 3 - Trend Analysis
+        run: |
+          python scripts/phase3_trend_analysis.py
+        env:
+          SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
+
+      - name: Phase 4 - Index Update & Report Generation
+        run: |
+          python scripts/phase4_index_update.py
+        env:
+          SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: spark-forge-cycle-logs
+          path: |
+            logs/
+            Z:/R&D/R&D Meeting/AI-Spark-Forge/Biweekly_Reports/
+
+      - name: Send Success Notification
+        if: success()
+        run: |
+          python scripts/send_notification.py --status success
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFICATION_RECIPIENTS: ${{ secrets.NOTIFICATION_RECIPIENTS }}
+
+      - name: Send Failure Notification
+        if: failure()
+        run: |
+          python scripts/send_notification.py --status failure
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFICATION_RECIPIENTS: ${{ secrets.NOTIFICATION_RECIPIENTS }}
+
+      - name: Commit and push updates
+        if: success()
+        run: |
+          git config --local user.email "spark-forge@promega.com"
+          git config --local user.name "Spark-Forge Automation"
+          git add -A
+          git commit -m "Spark & Forge Biweekly Cycle - $(date +'%Y-%m-%d')" || true
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Quarterly synthesis job (runs on last day of each quarter)
+  quarterly-synthesis:
+    runs-on: ubuntu-latest
+    name: Generate Quarterly Synthesis (if Q-end)
+    if: |
+      (github.event.schedule == '0 17 30 9 *') ||
+      (github.event.schedule == '0 17 31 12 *') ||
+      (github.event.schedule == '0 17 31 3 *') ||
+      (github.event.schedule == '0 17 30 6 *')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pandas openpyxl
+
+      - name: Generate Quarterly Synthesis
+        run: python scripts/generate_quarterly_synthesis.py
+        env:
+          SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
+
+      - name: Send Quarterly Report
+        run: python scripts/send_notification.py --status quarterly
+        env:
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          NOTIFICATION_RECIPIENTS: ${{ secrets.NOTIFICATION_RECIPIENTS }}

@@ -1,0 +1,15 @@
+# Python dependencies for Spark & Forge Automation
+
+# Data processing
+pandas==2.1.0
+openpyxl==3.10.10
+
+# API requests
+requests==2.31.0
+python-dotenv==1.0.0
+
+# Email
+python-dotenv==1.0.0
+
+# Utilities
+pyyaml==6.0
