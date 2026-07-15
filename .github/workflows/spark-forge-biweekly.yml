@@ -33,6 +33,9 @@ jobs:
         env:
           R_AND_D_PATH: ${{ secrets.R_AND_D_PATH }}
           SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
+          SHAREPOINT_USER: ${{ secrets.SHAREPOINT_USER }}
+          SHAREPOINT_PASSWORD: ${{ secrets.SHAREPOINT_PASSWORD }}
+          SHAREPOINT_SITE: https://promega.sharepoint.com/sites/PBIChemistryDiscovery
 
       - name: Phase 2 - Scan External Intelligence
         run: |
@@ -54,7 +57,7 @@ jobs:
           SPARK_FORGE_PATH: ${{ secrets.SPARK_FORGE_PATH }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: spark-forge-cycle-logs
